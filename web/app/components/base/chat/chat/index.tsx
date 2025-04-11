@@ -231,81 +231,43 @@ const Chat: FC<ChatProps> = ({
     return () => window.removeEventListener('message', handleMessage)
   }, [])
 
-  // 查找并点击"开启新对话"按钮
-  const findAndClickNewChatButton = () => {
-    console.log('步骤1：尝试点击开启新对话按钮')
-
-    // 尝试查找包含"开启新对话"文本的按钮
-    const buttons = document.querySelectorAll('button')
-    let newChatButton: HTMLButtonElement | null = null
-
-    for (const button of buttons) {
-      if (button.textContent?.includes('开启新对话')
-          || button.textContent?.includes('新对话')
-          || button.textContent?.includes('新的对话')
-          || button.textContent?.includes('New Chat')) {
-        newChatButton = button
-        break
-      }
-    }
-
-    if (newChatButton) {
-      console.log('找到开启新对话按钮，点击它')
-      newChatButton.click()
-      return true
-    }
-
-    // 尝试找icon按钮，这些按钮通常有特定的图标和提示文本
-    const iconButtons = document.querySelectorAll('[class*="RiEdit"]')
-    if (iconButtons.length > 0) {
-      console.log('找到可能的新对话图标按钮，点击其父元素')
-      let parent = iconButtons[0].parentElement
-      while (parent && parent.tagName !== 'BUTTON')
-        parent = parent.parentElement
-
-      if (parent) {
-        parent.click()
-        return true
-      }
-    }
-
-    console.log('未找到开启新对话按钮')
-    return false
-  }
-
   // 处理接收到的消息，执行三个步骤
   useEffect(() => {
     if (receivedText && onSend) {
       // 1. 开启新对话
       console.log('准备开始三步操作流程')
 
-      // 首先尝试点击"开启新对话"按钮
-      const foundButton = findAndClickNewChatButton()
+      // 使用更安全的方式处理新对话
+      const handleNewChat = () => {
+        // 查找新对话按钮
+        const newChatButton = document.querySelector('button[data-testid="new-chat-button"]') as HTMLButtonElement
+                            || document.querySelector('button:contains("开启新对话")') as HTMLButtonElement
+                            || document.querySelector('button:contains("新对话")') as HTMLButtonElement
 
-      // 2. 在输入框中填入传来的文字
-      setTimeout(() => {
-        console.log('步骤2：填入文字到输入框:', receivedText)
-
-        // 找到输入框并设置值
-        const textareas = document.querySelectorAll('textarea')
-        if (textareas.length > 0) {
-          const chatInput = textareas[0]
-
-          // 更安全的方式：直接跳过修改DOM，直接调用onSend
-          console.log('已准备发送文字:', receivedText)
-
-          // 3. 直接发送消息，不通过修改DOM元素
-          setTimeout(() => {
-            console.log('步骤3：直接调用onSend发送问题')
-            onSend(receivedText)
-            // 清空接收到的文字，防止重复发送
-            setReceivedText('')
-          }, 500)
+        if (newChatButton) {
+          // 使用 requestAnimationFrame 确保在下一个渲染周期执行
+          requestAnimationFrame(() => {
+            newChatButton.click()
+            // 等待 UI 更新后发送消息
+            setTimeout(() => {
+              console.log('步骤2：准备发送消息:', receivedText)
+              // 直接调用 onSend 而不是操作 DOM
+              onSend(receivedText)
+              // 清空接收到的文字
+              setReceivedText('')
+            }, 500)
+          })
         }
         else {
-          console.log('未找到输入框')
+          // 如果没有找到新对话按钮，直接发送消息
+          console.log('未找到新对话按钮，直接发送消息')
+          onSend(receivedText)
+          setReceivedText('')
         }
-      }, foundButton ? 1000 : 500) // 如果找到并点击了按钮，多等待一会儿让UI更新
+      }
+
+      // 使用 requestAnimationFrame 确保在下一个渲染周期执行
+      requestAnimationFrame(handleNewChat)
     }
   }, [receivedText, onSend])
 
