@@ -159,7 +159,7 @@ const Chat: FC<ChatProps> = ({
         handleWindowResize()
       })
     }
-  }, [handleScrollToBottom, handleWindowResize])
+  })
 
   useEffect(() => {
     window.addEventListener('resize', debounce(handleWindowResize))
@@ -275,42 +275,38 @@ const Chat: FC<ChatProps> = ({
 
   // 处理接收到的消息，执行三个步骤
   useEffect(() => {
-    if (!receivedText || !onSend) return
+    if (receivedText && onSend) {
+      // 1. 开启新对话
+      console.log('准备开始三步操作流程')
 
-    const processMessage = async () => {
-      try {
-        // 1. 开启新对话
-        console.log('准备开始三步操作流程')
-        const foundButton = findAndClickNewChatButton()
+      // 首先尝试点击"开启新对话"按钮
+      const foundButton = findAndClickNewChatButton()
 
-        // 2. 在输入框中填入传来的文字
-        await new Promise(resolve => setTimeout(resolve, foundButton ? 1000 : 500))
-
+      // 2. 在输入框中填入传来的文字
+      setTimeout(() => {
         console.log('步骤2：填入文字到输入框:', receivedText)
+
+        // 找到输入框并设置值
         const textareas = document.querySelectorAll('textarea')
         if (textareas.length > 0) {
           const chatInput = textareas[0]
-          chatInput.value = receivedText
-          const event = new Event('input', { bubbles: true })
-          chatInput.dispatchEvent(event)
-          console.log('已将文字填入输入框')
 
-          // 3. 点击发送按钮
-          await new Promise(resolve => setTimeout(resolve, 500))
-          console.log('步骤3：点击发送按钮')
-          onSend(receivedText)
-          setReceivedText('')
+          // 更安全的方式：直接跳过修改DOM，直接调用onSend
+          console.log('已准备发送文字:', receivedText)
+
+          // 3. 直接发送消息，不通过修改DOM元素
+          setTimeout(() => {
+            console.log('步骤3：直接调用onSend发送问题')
+            onSend(receivedText)
+            // 清空接收到的文字，防止重复发送
+            setReceivedText('')
+          }, 500)
         }
         else {
           console.log('未找到输入框')
         }
-      }
-      catch (error) {
-        console.error('处理消息时出错:', error)
-      }
+      }, foundButton ? 1000 : 500) // 如果找到并点击了按钮，多等待一会儿让UI更新
     }
-
-    processMessage()
   }, [receivedText, onSend])
 
   return (
