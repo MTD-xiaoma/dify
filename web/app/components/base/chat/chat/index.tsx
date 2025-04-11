@@ -75,11 +75,6 @@ export type ChatProps = {
   sidebarCollapseState?: boolean
 }
 
-type MessageEventData = {
-  type: string;
-  payload: string;
-}
-
 const Chat: FC<ChatProps> = ({
   appData,
   config,
@@ -133,6 +128,7 @@ const Chat: FC<ChatProps> = ({
   const chatFooterRef = useRef<HTMLDivElement>(null)
   const chatFooterInnerRef = useRef<HTMLDivElement>(null)
   const userScrolledRef = useRef(false)
+  const chatInputRef = useRef<HTMLTextAreaElement>(null)
   const [receivedText, setReceivedText] = useState('')
 
   const handleScrollToBottom = useCallback(() => {
@@ -215,36 +211,105 @@ const Chat: FC<ChatProps> = ({
       setTimeout(() => handleWindowResize(), 200)
   }, [sidebarCollapseState])
 
+  const hasTryToAsk = config?.suggested_questions_after_answer?.enabled && !!suggestedQuestions?.length && onSend
+
+  // 接收消息的处理器
   useEffect(() => {
-    const handleMessage = (event: MessageEvent<MessageEventData>) => {
-      // 安全检查：只接受来自你信任的父窗口地址
-      if (event.origin !== 'https://your-vue-app.com') return
+    const handleMessage = (event: MessageEvent) => {
+      // 安全检查：只接受来自信任的父窗口地址
+      if (!['http://localhost:8012', 'http://159.75.72.76:8012'].includes(event.origin)) return
 
       const { type, payload } = event.data
 
       if (type === 'TEXT_MESSAGE') {
-        setReceivedText(payload)
         console.log('收到父窗口的消息:', payload)
-        // 直接发送消息
-        if (onSend)
-          onSend(payload)
+        setReceivedText(payload)
       }
     }
 
     window.addEventListener('message', handleMessage)
-
-    return () => {
-      window.removeEventListener('message', handleMessage)
-    }
-  }, [onSend])
-
-  const handleStartNewChat = useCallback(() => {
-    console.log('点击了开启新对话按钮')
-    // 这里可以添加重置聊天状态的逻辑
-    setReceivedText('')
+    return () => window.removeEventListener('message', handleMessage)
   }, [])
 
-  const hasTryToAsk = config?.suggested_questions_after_answer?.enabled && !!suggestedQuestions?.length && onSend
+  // 查找并点击"开启新对话"按钮
+  const findAndClickNewChatButton = () => {
+    console.log('步骤1：尝试点击开启新对话按钮')
+
+    // 尝试查找包含"开启新对话"文本的按钮
+    const buttons = document.querySelectorAll('button')
+    let newChatButton: HTMLButtonElement | null = null
+
+    for (const button of buttons) {
+      if (button.textContent?.includes('开启新对话')
+          || button.textContent?.includes('新对话')
+          || button.textContent?.includes('新的对话')
+          || button.textContent?.includes('New Chat')) {
+        newChatButton = button
+        break
+      }
+    }
+
+    if (newChatButton) {
+      console.log('找到开启新对话按钮，点击它')
+      newChatButton.click()
+      return true
+    }
+
+    // 尝试找icon按钮，这些按钮通常有特定的图标和提示文本
+    const iconButtons = document.querySelectorAll('[class*="RiEdit"]')
+    if (iconButtons.length > 0) {
+      console.log('找到可能的新对话图标按钮，点击其父元素')
+      let parent = iconButtons[0].parentElement
+      while (parent && parent.tagName !== 'BUTTON')
+        parent = parent.parentElement
+
+      if (parent) {
+        parent.click()
+        return true
+      }
+    }
+
+    console.log('未找到开启新对话按钮')
+    return false
+  }
+
+  // 处理接收到的消息，执行三个步骤
+  useEffect(() => {
+    if (receivedText && onSend) {
+      // 1. 开启新对话
+      console.log('准备开始三步操作流程')
+
+      // 首先尝试点击"开启新对话"按钮
+      const foundButton = findAndClickNewChatButton()
+
+      // 2. 在输入框中填入传来的文字
+      setTimeout(() => {
+        console.log('步骤2：填入文字到输入框:', receivedText)
+
+        // 找到输入框并设置值
+        const textareas = document.querySelectorAll('textarea')
+        if (textareas.length > 0) {
+          const chatInput = textareas[0]
+          chatInput.value = receivedText
+          // 创建并分发input事件，确保React能够捕获值的变化
+          const event = new Event('input', { bubbles: true })
+          chatInput.dispatchEvent(event)
+          console.log('已将文字填入输入框')
+
+          // 3. 点击发送按钮
+          setTimeout(() => {
+            console.log('步骤3：点击发送按钮')
+            onSend(receivedText)
+            // 清空接收到的文字，防止重复发送
+            setReceivedText('')
+          }, 500)
+        }
+        else {
+          console.log('未找到输入框')
+        }
+      }, foundButton ? 1000 : 500) // 如果找到并点击了按钮，多等待一会儿让UI更新
+    }
+  }, [receivedText, onSend])
 
   return (
     <ChatContextProvider
@@ -266,11 +331,6 @@ const Chat: FC<ChatProps> = ({
           ref={chatContainerRef}
           className={cn('relative h-full overflow-y-auto overflow-x-hidden', chatContainerClassName)}
         >
-          <div className="mb-4 flex justify-center">
-            <Button onClick={handleStartNewChat}>
-              {t('appDebug.operation.startNewChat')}
-            </Button>
-          </div>
           {chatNode}
           <div
             ref={chatContainerInnerRef}
