@@ -1,4 +1,4 @@
-import { useCallback } from 'react'
+import { useCallback, useEffect } from 'react'
 import type {
   ModelProvider,
 } from '@/app/components/header/account-setting/model-provider-page/declarations'
@@ -9,6 +9,7 @@ import type {
   Dependency,
   GitHubItemAndMarketPlaceDependency,
   InstallPackageResponse,
+  InstalledLatestVersionResponse,
   InstalledPluginListResponse,
   PackageDependency,
   Permissions,
@@ -39,6 +40,7 @@ import { useInvalidateAllBuiltInTools } from './use-tools'
 import usePermission from '@/app/components/plugins/plugin-page/use-permission'
 import { uninstallPlugin } from '@/service/plugins'
 import useRefreshPluginList from '@/app/components/plugins/install-plugin/hooks/use-refresh-plugin-list'
+import { cloneDeep } from 'lodash-es'
 
 const NAME_SPACE = 'plugins'
 
@@ -68,6 +70,19 @@ export const useInstalledPluginList = (disable?: boolean) => {
     queryFn: () => get<InstalledPluginListResponse>('/workspaces/current/plugin/list'),
     enabled: !disable,
     initialData: !disable ? undefined : { plugins: [] },
+  })
+}
+
+export const useInstalledLatestVersion = (pluginIds: string[]) => {
+  return useQuery<InstalledLatestVersionResponse>({
+    queryKey: [NAME_SPACE, 'installedLatestVersion', pluginIds],
+    queryFn: () => post<InstalledLatestVersionResponse>('/workspaces/current/plugin/list/latest-versions', {
+      body: {
+        plugin_ids: pluginIds,
+      },
+    }),
+    enabled: !!pluginIds.length,
+    initialData: pluginIds.length ? undefined : { versions: {} },
   })
 }
 
@@ -186,7 +201,8 @@ export const useInstallOrUpdate = ({
           if (item.type === 'github') {
             const data = item as GitHubItemAndMarketPlaceDependency
             // From local bundle don't have data.value.github_plugin_unique_identifier
-            if (!data.value.github_plugin_unique_identifier) {
+            uniqueIdentifier = data.value.github_plugin_unique_identifier!
+            if (!uniqueIdentifier) {
               const { unique_identifier } = await post<uploadGitHubResponse>('/workspaces/current/plugin/upload/github', {
                 body: {
                   repo: data.value.repo!,
@@ -215,7 +231,7 @@ export const useInstallOrUpdate = ({
           }
           if (item.type === 'marketplace') {
             const data = item as GitHubItemAndMarketPlaceDependency
-            uniqueIdentifier = data.value.plugin_unique_identifier! || plugin[i]?.plugin_id
+            uniqueIdentifier = data.value.marketplace_plugin_unique_identifier! || plugin[i]?.plugin_id
             if (uniqueIdentifier === installedPayload?.uniqueIdentifier) {
               return {
                 success: true,
@@ -383,6 +399,7 @@ export const usePluginTaskList = (category?: PluginType) => {
   const {
     data,
     isFetched,
+    isRefetching,
     refetch,
     ...rest
   } = useQuery({
@@ -392,16 +409,24 @@ export const usePluginTaskList = (category?: PluginType) => {
     refetchInterval: (lastQuery) => {
       const lastData = lastQuery.state.data
       const taskDone = lastData?.tasks.every(task => task.status === TaskStatus.success || task.status === TaskStatus.failed)
+      return taskDone ? false : 5000
+    },
+  })
+
+  useEffect(() => {
+    // After first fetch, refresh plugin list each time all tasks are done
+    if (!isRefetching) {
+      const lastData = cloneDeep(data)
+      const taskDone = lastData?.tasks.every(task => task.status === TaskStatus.success || task.status === TaskStatus.failed)
       const taskAllFailed = lastData?.tasks.every(task => task.status === TaskStatus.failed)
       if (taskDone) {
         if (lastData?.tasks.length && !taskAllFailed)
           refreshPluginList(category ? { category } as any : undefined, !category)
-        return false
       }
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isRefetching])
 
-      return 5000
-    },
-  })
   const handleRefetch = useCallback(() => {
     refetch()
   }, [refetch])
