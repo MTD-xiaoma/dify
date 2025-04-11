@@ -112,12 +112,10 @@ const ChatWithHistory: FC<ChatWithHistoryProps> = ({
 export type ChatWithHistoryWrapProps = {
   installedAppInfo?: InstalledApp
   className?: string
-  receivedText?: string
 }
 const ChatWithHistoryWrap: FC<ChatWithHistoryWrapProps> = ({
   installedAppInfo,
   className,
-  receivedText,
 }) => {
   const media = useBreakpoints()
   const isMobile = media === MediaType.mobile
@@ -162,14 +160,6 @@ const ChatWithHistoryWrap: FC<ChatWithHistoryWrapProps> = ({
     currentConversationInputs,
     setCurrentConversationInputs,
   } = useChatWithHistory(installedAppInfo)
-
-  useEffect(() => {
-    if (receivedText) {
-      console.log('准备发送收到的消息:', receivedText)
-      handleNewConversation()
-      handleStartChat(receivedText)
-    }
-  }, [receivedText, handleNewConversation, handleStartChat])
 
   return (
     <ChatWithHistoryContext.Provider value={{
