@@ -231,78 +231,81 @@ const Chat: FC<ChatProps> = ({
     return () => window.removeEventListener('message', handleMessage)
   }, [])
 
+  // 查找并点击"开启新对话"按钮
+  const findAndClickNewChatButton = () => {
+    console.log('步骤1：尝试点击开启新对话按钮')
+
+    // 尝试查找包含"开启新对话"文本的按钮
+    const buttons = document.querySelectorAll('button')
+    let newChatButton: HTMLButtonElement | null = null
+
+    for (const button of buttons) {
+      if (button.textContent?.includes('开启新对话')
+          || button.textContent?.includes('新对话')
+          || button.textContent?.includes('新的对话')
+          || button.textContent?.includes('New Chat')) {
+        newChatButton = button
+        break
+      }
+    }
+
+    if (newChatButton) {
+      console.log('找到开启新对话按钮，点击它')
+      newChatButton.click()
+      return true
+    }
+
+    // 尝试找icon按钮，这些按钮通常有特定的图标和提示文本
+    const iconButtons = document.querySelectorAll('[class*="RiEdit"]')
+    if (iconButtons.length > 0) {
+      console.log('找到可能的新对话图标按钮，点击其父元素')
+      let parent = iconButtons[0].parentElement
+      while (parent && parent.tagName !== 'BUTTON')
+        parent = parent.parentElement
+
+      if (parent) {
+        parent.click()
+        return true
+      }
+    }
+
+    console.log('未找到开启新对话按钮')
+    return false
+  }
+
   // 处理接收到的消息，执行三个步骤
   useEffect(() => {
     if (receivedText && onSend) {
+      // 1. 开启新对话
       console.log('准备开始三步操作流程')
 
-      // 辅助函数：通过XPath获取元素
-      const getElementByXPath = (xpath: string) => {
-        try {
-          return document.evaluate(
-            xpath,
-            document,
-            null,
-            XPathResult.FIRST_ORDERED_NODE_TYPE,
-            null,
-          ).singleNodeValue as HTMLElement
-        }
-        catch (e) {
-          console.error('XPath求值错误:', e)
-          return null
-        }
-      }
+      // 首先尝试点击"开启新对话"按钮
+      const foundButton = findAndClickNewChatButton()
 
-      // 1. 点击"开启新对话"按钮 - 使用XPath
-      console.log('步骤1：尝试点击开启新对话按钮')
-      const newChatButtonXPath = '/html/body/div[1]/div/div[1]/div/div[2]/button'
-      const newChatButton = getElementByXPath(newChatButtonXPath)
+      // 2. 在输入框中填入传来的文字
+      setTimeout(() => {
+        console.log('步骤2：填入文字到输入框:', receivedText)
 
-      if (newChatButton) {
-        console.log('找到开启新对话按钮，点击它')
-        newChatButton.click()
+        // 找到输入框并设置值
+        const textareas = document.querySelectorAll('textarea')
+        if (textareas.length > 0) {
+          const chatInput = textareas[0]
 
-        // 2. 等待UI更新后在输入框填入文字 - 使用XPath
-        setTimeout(() => {
-          console.log('步骤2：填入文字到输入框:', receivedText)
-          const textareaXPath = '/html/body/div[1]/div/div[2]/div/div[2]/div/div[2]/div/div/div/div[2]/div[1]/textarea'
-          const textarea = getElementByXPath(textareaXPath)
+          // 更安全的方式：直接跳过修改DOM，直接调用onSend
+          console.log('已准备发送文字:', receivedText)
 
-          if (textarea) {
-            console.log('找到输入框，准备发送文字')
-
-            // 3. 点击发送按钮 - 使用XPath
-            setTimeout(() => {
-              console.log('步骤3：点击发送按钮')
-              const sendButtonXPath = '/html/body/div[1]/div/div[2]/div/div[2]/div/div[2]/div/div/div/div[2]/div[2]/div/button'
-              const sendButton = getElementByXPath(sendButtonXPath)
-
-              if (sendButton) {
-                console.log('找到发送按钮，点击它')
-                // 由于直接点击可能会有问题，我们使用onSend
-                onSend(receivedText)
-                // 清空接收到的文字，防止重复发送
-                setReceivedText('')
-              }
-              else {
-                console.log('未找到发送按钮，尝试直接调用onSend')
-                onSend(receivedText)
-                setReceivedText('')
-              }
-            }, 500)
-          }
-          else {
-            console.log('未找到输入框，尝试直接调用onSend')
+          // 3. 直接发送消息，不通过修改DOM元素
+          setTimeout(() => {
+            console.log('步骤3：直接调用onSend发送问题')
             onSend(receivedText)
+            // 清空接收到的文字，防止重复发送
             setReceivedText('')
-          }
-        }, 1000) // 给足够的时间等待UI更新
-      }
-      else {
-        console.log('未找到开启新对话按钮，直接尝试发送消息')
-        onSend(receivedText)
-        setReceivedText('')
-      }
+          }, 500)
+        }
+        else {
+          console.log('未找到输入框')
+        }
+      }, foundButton ? 1000 : 500) // 如果找到并点击了按钮，多等待一会儿让UI更新
     }
   }, [receivedText, onSend])
 
