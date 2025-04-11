@@ -159,7 +159,7 @@ const Chat: FC<ChatProps> = ({
         handleWindowResize()
       })
     }
-  })
+  }, [handleScrollToBottom, handleWindowResize])
 
   useEffect(() => {
     window.addEventListener('resize', debounce(handleWindowResize))
@@ -231,51 +231,42 @@ const Chat: FC<ChatProps> = ({
     return () => window.removeEventListener('message', handleMessage)
   }, [])
 
-  // 使用XPath查找元素
-  const getElementByXPath = (xpath: string) => {
-    try {
-      return document.evaluate(xpath, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue as HTMLElement
-    }
-    catch (e) {
-      console.error('XPath查找元素出错:', e)
-      return null
-    }
-  }
-
-  // 使用XPath查找并点击"开启新对话"按钮
+  // 查找并点击"开启新对话"按钮
   const findAndClickNewChatButton = () => {
     console.log('步骤1：尝试点击开启新对话按钮')
 
-    // 使用提供的XPath路径查找按钮
-    const newChatButtonXPath = '/html/body/div[1]/div/div[1]/div/div[2]/button'
-    const newChatButton = getElementByXPath(newChatButtonXPath)
-
-    if (newChatButton) {
-      console.log('通过XPath找到开启新对话按钮，点击它');
-      (newChatButton as HTMLButtonElement).click()
-      return true
-    }
-
-    console.log('通过XPath未找到开启新对话按钮，尝试备用方法')
-
-    // 尝试备用方法查找按钮
+    // 尝试查找包含"开启新对话"文本的按钮
     const buttons = document.querySelectorAll('button')
-    let backupButton: HTMLButtonElement | null = null
+    let newChatButton: HTMLButtonElement | null = null
 
     for (const button of buttons) {
       if (button.textContent?.includes('开启新对话')
           || button.textContent?.includes('新对话')
           || button.textContent?.includes('新的对话')
           || button.textContent?.includes('New Chat')) {
-        backupButton = button
+        newChatButton = button
         break
       }
     }
 
-    if (backupButton) {
-      console.log('通过文本内容找到开启新对话按钮，点击它')
-      backupButton.click()
+    if (newChatButton) {
+      console.log('找到开启新对话按钮，点击它')
+      newChatButton.click()
       return true
+    }
+
+    // 尝试找icon按钮，这些按钮通常有特定的图标和提示文本
+    const iconButtons = document.querySelectorAll('[class*="RiEdit"]')
+    if (iconButtons.length > 0) {
+      console.log('找到可能的新对话图标按钮，点击其父元素')
+      let parent = iconButtons[0].parentElement
+      while (parent && parent.tagName !== 'BUTTON')
+        parent = parent.parentElement
+
+      if (parent) {
+        parent.click()
+        return true
+      }
     }
 
     console.log('未找到开启新对话按钮')
@@ -284,74 +275,42 @@ const Chat: FC<ChatProps> = ({
 
   // 处理接收到的消息，执行三个步骤
   useEffect(() => {
-    if (receivedText && onSend) {
-      // 1. 开启新对话
-      console.log('准备开始三步操作流程')
+    if (!receivedText || !onSend) return
 
-      // 首先尝试点击"开启新对话"按钮
-      const foundButton = findAndClickNewChatButton()
+    const processMessage = async () => {
+      try {
+        // 1. 开启新对话
+        console.log('准备开始三步操作流程')
+        const foundButton = findAndClickNewChatButton()
 
-      // 2. 在输入框中填入传来的文字
-      setTimeout(() => {
+        // 2. 在输入框中填入传来的文字
+        await new Promise(resolve => setTimeout(resolve, foundButton ? 1000 : 500))
+
         console.log('步骤2：填入文字到输入框:', receivedText)
-
-        // 使用提供的XPath路径查找输入框
-        const inputXPath = '/html/body/div[1]/div/div[2]/div/div[2]/div/div[2]/div/div/div/div[2]/div[1]/textarea'
-        const chatInput = getElementByXPath(inputXPath) as HTMLTextAreaElement
-
-        if (chatInput) {
-          console.log('通过XPath找到输入框，填入内容')
+        const textareas = document.querySelectorAll('textarea')
+        if (textareas.length > 0) {
+          const chatInput = textareas[0]
           chatInput.value = receivedText
-          // 创建并分发input事件，确保React能够捕获值的变化
           const event = new Event('input', { bubbles: true })
           chatInput.dispatchEvent(event)
           console.log('已将文字填入输入框')
 
           // 3. 点击发送按钮
-          setTimeout(() => {
-            console.log('步骤3：点击发送按钮')
-
-            // 使用提供的XPath路径查找发送按钮
-            const sendButtonXPath = '/html/body/div[1]/div/div[2]/div/div[2]/div/div[2]/div/div/div/div[2]/div[2]/div/button'
-            const sendButton = getElementByXPath(sendButtonXPath) as HTMLButtonElement
-
-            if (sendButton) {
-              console.log('通过XPath找到发送按钮，点击它')
-              sendButton.click()
-              setReceivedText('') // 清空接收到的文字，防止重复发送
-            }
-            else {
-              console.log('未找到发送按钮，尝试使用onSend函数')
-              onSend(receivedText)
-              setReceivedText('')
-            }
-          }, 500)
+          await new Promise(resolve => setTimeout(resolve, 500))
+          console.log('步骤3：点击发送按钮')
+          onSend(receivedText)
+          setReceivedText('')
         }
         else {
-          console.log('通过XPath未找到输入框，尝试备用方法')
-
-          // 备用方法查找输入框
-          const textareas = document.querySelectorAll('textarea')
-          if (textareas.length > 0) {
-            const backupInput = textareas[0]
-            backupInput.value = receivedText
-            const event = new Event('input', { bubbles: true })
-            backupInput.dispatchEvent(event)
-            console.log('通过备用方法找到输入框并填入内容')
-
-            // 点击发送按钮
-            setTimeout(() => {
-              console.log('步骤3：通过备用方法点击发送按钮')
-              onSend(receivedText)
-              setReceivedText('')
-            }, 500)
-          }
-          else {
-            console.log('无法找到输入框，操作失败')
-          }
+          console.log('未找到输入框')
         }
-      }, foundButton ? 1000 : 500) // 如果找到并点击了按钮，多等待一会儿让UI更新
+      }
+      catch (error) {
+        console.error('处理消息时出错:', error)
+      }
     }
+
+    processMessage()
   }, [receivedText, onSend])
 
   return (
