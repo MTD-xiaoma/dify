@@ -75,6 +75,11 @@ export type ChatProps = {
   sidebarCollapseState?: boolean
 }
 
+type MessageEventData = {
+  type: string;
+  payload: string;
+}
+
 const Chat: FC<ChatProps> = ({
   appData,
   config,
@@ -128,6 +133,7 @@ const Chat: FC<ChatProps> = ({
   const chatFooterRef = useRef<HTMLDivElement>(null)
   const chatFooterInnerRef = useRef<HTMLDivElement>(null)
   const userScrolledRef = useRef(false)
+  const [receivedText, setReceivedText] = useState('')
 
   const handleScrollToBottom = useCallback(() => {
     if (chatList.length > 1 && chatContainerRef.current && !userScrolledRef.current)
@@ -209,6 +215,35 @@ const Chat: FC<ChatProps> = ({
       setTimeout(() => handleWindowResize(), 200)
   }, [sidebarCollapseState])
 
+  useEffect(() => {
+    const handleMessage = (event: MessageEvent<MessageEventData>) => {
+      // 安全检查：只接受来自你信任的父窗口地址
+      if (event.origin !== 'https://your-vue-app.com') return
+
+      const { type, payload } = event.data
+
+      if (type === 'TEXT_MESSAGE') {
+        setReceivedText(payload)
+        console.log('收到父窗口的消息:', payload)
+        // 直接发送消息
+        if (onSend)
+          onSend(payload)
+      }
+    }
+
+    window.addEventListener('message', handleMessage)
+
+    return () => {
+      window.removeEventListener('message', handleMessage)
+    }
+  }, [onSend])
+
+  const handleStartNewChat = useCallback(() => {
+    console.log('点击了开启新对话按钮')
+    // 这里可以添加重置聊天状态的逻辑
+    setReceivedText('')
+  }, [])
+
   const hasTryToAsk = config?.suggested_questions_after_answer?.enabled && !!suggestedQuestions?.length && onSend
 
   return (
@@ -231,6 +266,11 @@ const Chat: FC<ChatProps> = ({
           ref={chatContainerRef}
           className={cn('relative h-full overflow-y-auto overflow-x-hidden', chatContainerClassName)}
         >
+          <div className="mb-4 flex justify-center">
+            <Button onClick={handleStartNewChat}>
+              {t('appDebug.operation.startNewChat')}
+            </Button>
+          </div>
           {chatNode}
           <div
             ref={chatContainerInnerRef}
