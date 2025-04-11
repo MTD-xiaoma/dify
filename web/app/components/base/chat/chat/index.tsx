@@ -241,8 +241,10 @@ const Chat: FC<ChatProps> = ({
       const handleNewChat = () => {
         // 查找新对话按钮
         const newChatButton = document.querySelector('button[data-testid="new-chat-button"]') as HTMLButtonElement
-                            || document.querySelector('button:contains("开启新对话")') as HTMLButtonElement
-                            || document.querySelector('button:contains("新对话")') as HTMLButtonElement
+                            || Array.from(document.querySelectorAll('button')).find(button =>
+                              button.textContent?.includes('开启新对话')
+                                || button.textContent?.includes('新对话'),
+                            ) as HTMLButtonElement
 
         if (newChatButton) {
           // 使用 requestAnimationFrame 确保在下一个渲染周期执行
