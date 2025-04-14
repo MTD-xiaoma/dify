@@ -47,7 +47,7 @@ const translation = {
     maxTreeDepth: '每个分支最大限制 {{depth}} 个节点',
     needEndNode: '必须添加结束节点',
     needAnswerNode: '必须添加直接回复节点',
-    workflowProcess: '工作流',
+    workflowProcess: '工作流_5',
     notRunning: '尚未运行',
     previewPlaceholder: '在下面的框中输入内容开始调试聊天机器人',
     effectVarConfirm: {
@@ -219,7 +219,7 @@ const translation = {
     'allTool': '全部',
     'plugin': '插件',
     'customTool': '自定义',
-    'workflowTool': '工作流',
+    'workflowTool': '工作流_13',
     'question-understand': '问题理解',
     'logic': '逻辑',
     'transform': '转换',

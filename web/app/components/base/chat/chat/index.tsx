@@ -399,7 +399,6 @@ const Chat: FC<ChatProps> = ({
             }}
           />
         )}
-        <div>masheng11111111111111111111111</div>
       </div>
     </ChatContextProvider>
   )

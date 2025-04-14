@@ -36,7 +36,7 @@ const translation = {
     Translate: '翻译',
     Programming: '编程',
     HR: '人力资源',
-    Workflow: '工作流',
+    Workflow: '工作流_1',
     Entertainment: '娱乐',
   },
 }

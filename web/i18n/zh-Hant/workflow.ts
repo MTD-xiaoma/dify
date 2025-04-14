@@ -40,7 +40,7 @@ const translation = {
     maxTreeDepth: '每個分支最大限制 {{depth}} 個節點',
     needEndNode: '必須添加結束節點',
     needAnswerNode: '必須添加直接回覆節點',
-    workflowProcess: '工作流',
+    workflowProcess: '工作流_8',
     notRunning: '尚未運行',
     previewPlaceholder: '在下面的框中輸入內容開始調試聊天機器人',
     effectVarConfirm: {
@@ -213,7 +213,7 @@ const translation = {
     'allTool': '全部',
     'builtInTool': '內置',
     'customTool': '自定義',
-    'workflowTool': '工作流',
+    'workflowTool': '工作流_15',
     'question-understand': '問題理解',
     'logic': '邏輯',
     'transform': '轉換',
