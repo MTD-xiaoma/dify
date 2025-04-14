@@ -36,7 +36,7 @@ const translation = {
     Programming: '程式設計',
     HR: '人力資源',
     Agent: '代理',
-    Workflow: '工作流_4',
+    Workflow: '工作流',
   },
 }
 

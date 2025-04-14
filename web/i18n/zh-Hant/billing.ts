@@ -59,7 +59,7 @@ const translation = {
       ragAPIRequest: 'RAG API 請求',
       bulkUpload: '批次上傳文件',
       agentMode: '代理模式',
-      workflow: '工作流_9',
+      workflow: '工作流',
       llmLoadingBalancing: 'LLM 負載均衡',
       llmLoadingBalancingTooltip: '向模型添加多個 API 金鑰，從而有效地繞過 API 速率限制。',
     },

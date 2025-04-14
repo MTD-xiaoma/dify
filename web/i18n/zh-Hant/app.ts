@@ -4,7 +4,7 @@ const translation = {
     all: '全部',
     chatbot: '聊天助手',
     agent: 'Agent',
-    workflow: '工作流_3',
+    workflow: '工作流',
     completion: '文字生成',
     advanced: '聊天流',
     basic: '基本',
@@ -114,7 +114,7 @@ const translation = {
     all: '所有類型',
     chatbot: '聊天助手',
     agent: 'Agent',
-    workflow: '工作流_14',
+    workflow: '工作流',
     completion: '文字生成',
     advanced: '聊天流',
   },
@@ -175,7 +175,7 @@ const translation = {
   openInExplore: '在“探索”中打開',
   newAppFromTemplate: {
     sidebar: {
-      Workflow: '工作流_17',
+      Workflow: '工作流',
       Recommended: '推薦',
       Agent: '代理',
       HR: '人力資源',

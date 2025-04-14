@@ -5,7 +5,7 @@ const translation = {
     all: '全部',
     builtIn: '內建',
     custom: '自定義',
-    workflow: '工作流_11',
+    workflow: '工作流',
   },
   contribute: {
     line1: '我有興趣為 ',
