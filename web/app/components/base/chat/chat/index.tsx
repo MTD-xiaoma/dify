@@ -128,6 +128,8 @@ const Chat: FC<ChatProps> = ({
   const chatFooterRef = useRef<HTMLDivElement>(null)
   const chatFooterInnerRef = useRef<HTMLDivElement>(null)
   const userScrolledRef = useRef(false)
+  const chatInputRef = useRef<HTMLTextAreaElement>(null)
+  const [receivedText, setReceivedText] = useState('')
 
   const handleScrollToBottom = useCallback(() => {
     if (chatList.length > 1 && chatContainerRef.current && !userScrolledRef.current)
@@ -210,6 +212,66 @@ const Chat: FC<ChatProps> = ({
   }, [sidebarCollapseState])
 
   const hasTryToAsk = config?.suggested_questions_after_answer?.enabled && !!suggestedQuestions?.length && onSend
+
+  // 接收消息的处理器
+  useEffect(() => {
+    const handleMessage = (event: MessageEvent) => {
+      // 安全检查：只接受来自信任的父窗口地址
+      if (!['http://localhost:8012', 'http://159.75.72.76:8012'].includes(event.origin)) return
+
+      const { type, payload } = event.data
+
+      if (type === 'TEXT_MESSAGE') {
+        console.log('收到父窗口的消息:', payload)
+        setReceivedText(payload)
+      }
+    }
+
+    window.addEventListener('message', handleMessage)
+    return () => window.removeEventListener('message', handleMessage)
+  }, [])
+
+  // 处理接收到的消息，执行三个步骤
+  useEffect(() => {
+    if (receivedText && onSend) {
+      // 1. 开启新对话
+      console.log('准备开始三步操作流程')
+
+      // 使用更安全的方式处理新对话
+      const handleNewChat = () => {
+        // 查找新对话按钮
+        const newChatButton = document.querySelector('button[data-testid="new-chat-button"]') as HTMLButtonElement
+                            || Array.from(document.querySelectorAll('button')).find(button =>
+                              button.textContent?.includes('开启新对话')
+                                || button.textContent?.includes('新对话'),
+                            ) as HTMLButtonElement
+
+        if (newChatButton) {
+          // 使用 requestAnimationFrame 确保在下一个渲染周期执行
+          requestAnimationFrame(() => {
+            newChatButton.click()
+            // 等待 UI 更新后发送消息
+            setTimeout(() => {
+              console.log('步骤2：准备发送消息:', receivedText)
+              // 直接调用 onSend 而不是操作 DOM
+              onSend(receivedText)
+              // 清空接收到的文字
+              setReceivedText('')
+            }, 500)
+          })
+        }
+        else {
+          // 如果没有找到新对话按钮，直接发送消息
+          console.log('未找到新对话按钮，直接发送消息')
+          onSend(receivedText)
+          setReceivedText('')
+        }
+      }
+
+      // 使用 requestAnimationFrame 确保在下一个渲染周期执行
+      requestAnimationFrame(handleNewChat)
+    }
+  }, [receivedText, onSend])
 
   return (
     <ChatContextProvider

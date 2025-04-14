@@ -70,6 +70,7 @@ If you want to customize the host and port:
 
 ```bash
 pnpm run start --port=3001 --host=0.0.0.0
+pnpm run start --port=5005 --host=0.0.0.0
 ```
 
 If you want to customize the number of instances launched by PM2, you can configure `PM2_INSTANCES` in `docker-compose.yaml` or `Dockerfile`.
